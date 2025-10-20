@@ -1,0 +1,26 @@
+[package]
+name = "vortex-sdk"
+version = "1.0.0"
+edition = "2021"
+authors = ["Team Vortex Software <support@vortexsoftware.com>"]
+description = "Vortex Rust SDK for authentication and invitation management"
+license = "MIT"
+repository = "https://github.com/teamvortexsoftware/vortex"
+homepage = "https://vortexsoftware.com"
+documentation = "https://docs.rs/vortex-sdk"
+keywords = ["vortex", "authentication", "invitations", "jwt"]
+categories = ["authentication", "api-bindings"]
+readme = "README.md"
+
+[dependencies]
+base64 = "0.21"
+hmac = "0.12"
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+tokio = { version = "1.0", features = ["full"] }
+uuid = { version = "1.0", features = ["v4"] }
+
+[dev-dependencies]
+tokio-test = "0.4"

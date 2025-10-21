@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use hmac::{Hmac, Mac};
-use reqwest::{Client as HttpClient, RequestBuilder, Response};
+use reqwest::Client as HttpClient;
 use serde_json::json;
 use sha2::Sha256;
 use std::collections::HashMap;
@@ -34,7 +34,8 @@ impl VortexClient {
     /// ```
     /// use vortex_sdk::VortexClient;
     ///
-    /// let client = VortexClient::new(std::env::var("VORTEX_API_KEY").unwrap());
+    /// let api_key = "VRTX.your_encoded_id.your_key".to_string();
+    /// let client = VortexClient::new(api_key);
     /// ```
     pub fn new(api_key: String) -> Self {
         let base_url = std::env::var("VORTEX_API_BASE_URL")
@@ -78,7 +79,8 @@ impl VortexClient {
     /// ```
     /// use vortex_sdk::{VortexClient, Identifier, Group};
     ///
-    /// let client = VortexClient::new("your-api-key".to_string());
+    /// // API key format: VRTX.base64_encoded_uuid.secret_key
+    /// let client = VortexClient::new("VRTX.AAAAAAAAAAAAAAAAAAAAAA.test_secret_key".to_string());
     /// let jwt = client.generate_jwt(
     ///     "user-123",
     ///     vec![Identifier::new("email", "user@example.com")],

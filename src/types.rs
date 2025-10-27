@@ -18,23 +18,59 @@ impl Identifier {
     }
 }
 
-/// Group information
+/// Group information for JWT generation (input)
+/// Supports both 'id' (legacy) and 'groupId' (preferred) for backward compatibility
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Group {
     #[serde(rename = "type")]
     pub group_type: String,
-    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_id: Option<String>,
     pub name: String,
 }
 
 impl Group {
-    pub fn new(group_type: &str, id: &str, name: &str) -> Self {
+    pub fn new(group_type: &str, name: &str) -> Self {
         Self {
             group_type: group_type.to_string(),
-            id: id.to_string(),
+            id: None,
+            group_id: None,
             name: name.to_string(),
         }
     }
+
+    pub fn with_id(mut self, id: &str) -> Self {
+        self.id = Some(id.to_string());
+        self
+    }
+
+    pub fn with_group_id(mut self, group_id: &str) -> Self {
+        self.group_id = Some(group_id.to_string());
+        self
+    }
+}
+
+/// Invitation group from API responses
+/// This matches the MemberGroups table structure from the API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InvitationGroup {
+    /// Vortex internal UUID
+    pub id: String,
+    /// Vortex account ID
+    pub account_id: String,
+    /// Customer's group ID (the ID they provided to Vortex)
+    pub group_id: String,
+    /// Group type (e.g., "workspace", "team")
+    #[serde(rename = "type")]
+    pub group_type: String,
+    /// Group name
+    pub name: String,
+    /// ISO 8601 timestamp when the group was created
+    pub created_at: String,
 }
 
 /// Invitation target (email or sms)
@@ -86,7 +122,7 @@ pub struct Invitation {
     pub views: u32,
     pub widget_configuration_id: String,
     pub project_id: String,
-    pub groups: Vec<Group>,
+    pub groups: Vec<InvitationGroup>,
     pub accepts: Vec<InvitationAcceptance>,
 }
 

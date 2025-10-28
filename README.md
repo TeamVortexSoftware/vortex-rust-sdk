@@ -46,8 +46,8 @@ fn main() {
 
     // Groups the user belongs to (specific to your product)
     let groups = vec![
-        Group::new("workspace", "workspace-123", "My Workspace"),
-        Group::new("document", "doc-456", "Project Plan"),
+        Group::new("workspace", "My Workspace").with_group_id("workspace-123"),
+        Group::new("document", "Project Plan").with_group_id("doc-456"),
     ];
 
     // User role (if applicable)

@@ -12,19 +12,16 @@
 //! # Example
 //!
 //! ```no_run
-//! use vortex_sdk::{VortexClient, Identifier, Group};
+//! use vortex_sdk::{VortexClient, User};
 //!
 //! #[tokio::main]
 //! async fn main() {
 //!     let client = VortexClient::new(std::env::var("VORTEX_API_KEY").unwrap());
 //!
 //!     // Generate a JWT
-//!     let jwt = client.generate_jwt(
-//!         "user-123",
-//!         vec![Identifier::new("email", "user@example.com")],
-//!         vec![Group::new("team", "team-1", "Engineering")],
-//!         Some("admin")
-//!     ).unwrap();
+//!     let user = User::new("user-123", "user@example.com")
+//!         .with_admin_scopes(vec!["autoJoin".to_string()]);
+//!     let jwt = client.generate_jwt(&user, None).unwrap();
 //!
 //!     println!("JWT: {}", jwt);
 //!

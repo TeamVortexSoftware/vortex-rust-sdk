@@ -62,38 +62,35 @@ impl VortexClient {
         }
     }
 
-    /// Generate a JWT token for the given user data
-    ///
-    /// This uses the same algorithm as the Node.js SDK to ensure
-    /// complete compatibility with React providers.
+    /// Generate a JWT token for a user
     ///
     /// # Arguments
     ///
-    /// * `user_id` - Unique identifier for the user
-    /// * `identifiers` - List of identifiers (email, sms)
-    /// * `groups` - List of groups the user belongs to
-    /// * `role` - Optional user role
+    /// * `user` - User object with id, email, and optional admin_scopes
+    /// * `extra` - Optional additional properties to include in the JWT payload
     ///
     /// # Example
     ///
     /// ```
-    /// use vortex_sdk::{VortexClient, Identifier, Group};
+    /// use vortex_sdk::{VortexClient, User};
+    /// use std::collections::HashMap;
     ///
-    /// // API key format: VRTX.base64_encoded_uuid.secret_key
     /// let client = VortexClient::new("VRTX.AAAAAAAAAAAAAAAAAAAAAA.test_secret_key".to_string());
-    /// let jwt = client.generate_jwt(
-    ///     "user-123",
-    ///     vec![Identifier::new("email", "user@example.com")],
-    ///     vec![Group::new("team", "team-1", "Engineering")],
-    ///     Some("admin")
-    /// ).unwrap();
+    ///
+    /// // Simple usage
+    /// let user = User::new("user-123", "user@example.com")
+    ///     .with_admin_scopes(vec!["autoJoin".to_string()]);
+    /// let jwt = client.generate_jwt(&user, None).unwrap();
+    ///
+    /// // With additional properties
+    /// let mut extra = HashMap::new();
+    /// extra.insert("role".to_string(), serde_json::json!("admin"));
+    /// let jwt = client.generate_jwt(&user, Some(extra)).unwrap();
     /// ```
     pub fn generate_jwt(
         &self,
-        user_id: &str,
-        identifiers: Vec<Identifier>,
-        groups: Vec<Group>,
-        role: Option<&str>,
+        user: &User,
+        extra: Option<HashMap<String, serde_json::Value>>,
     ) -> Result<String, VortexError> {
         // Parse API key: format is VRTX.base64encodedId.key
         let parts: Vec<&str> = self.api_key.split('.').collect();
@@ -138,7 +135,7 @@ impl VortexClient {
         hmac.update(uuid_str.as_bytes());
         let signing_key = hmac.finalize().into_bytes();
 
-        // Step 2: Build header + payload (same structure as Node.js)
+        // Step 2: Build header + payload
         let header = json!({
             "iat": now,
             "alg": "HS256",
@@ -146,17 +143,37 @@ impl VortexClient {
             "kid": uuid_str,
         });
 
-        let payload = json!({
-            "userId": user_id,
-            "identifiers": identifiers,
-            "groups": groups,
-            "role": role,
+        // Build payload with user data
+        let mut payload_json = json!({
+            "userId": user.id,
+            "userEmail": user.email,
             "expires": expires,
         });
 
+        // Add userIsAutoJoinAdmin if 'autoJoin' is in admin_scopes
+        if let Some(ref scopes) = user.admin_scopes {
+            if scopes.iter().any(|s| s == "autoJoin") {
+                payload_json["userIsAutoJoinAdmin"] = json!(true);
+            }
+        }
+
+        // Add any additional properties from user.extra
+        if let Some(ref user_extra) = user.extra {
+            for (key, value) in user_extra {
+                payload_json[key] = value.clone();
+            }
+        }
+
+        // Add any additional properties from extra parameter
+        if let Some(extra_props) = extra {
+            for (key, value) in extra_props {
+                payload_json[key] = value;
+            }
+        }
+
         // Step 3: Base64URL encode header and payload
         let header_b64 = URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header).unwrap());
-        let payload_b64 = URL_SAFE_NO_PAD.encode(serde_json::to_vec(&payload).unwrap());
+        let payload_b64 = URL_SAFE_NO_PAD.encode(serde_json::to_vec(&payload_json).unwrap());
 
         // Step 4: Sign with HMAC-SHA256
         let to_sign = format!("{}.{}", header_b64, payload_b64);

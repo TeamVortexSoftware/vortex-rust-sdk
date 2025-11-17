@@ -29,32 +29,40 @@ Your API key is used to:
 The Vortex Widget requires a JWT to authenticate users. Here's how to generate one:
 
 ```rust
-use vortex_sdk::{VortexClient, Identifier, Group};
+use vortex_sdk::{VortexClient, User};
 
 fn main() {
     // Initialize the Vortex client with your API key
     let client = VortexClient::new(std::env::var("VORTEX_API_KEY").unwrap());
 
-    // User ID from your system
-    let user_id = "users-id-in-my-system";
+    // Create a user and generate JWT
+    let user = User::new("user-123", "user@example.com")
+        .with_admin_scopes(vec!["autoJoin".to_string()]);
 
-    // Identifiers associated with the user
-    let identifiers = vec![
-        Identifier::new("email", "user@example.com"),
-        Identifier::new("sms", "18008675309"),
-    ];
+    let jwt = client.generate_jwt(&user, None).unwrap();
 
-    // Groups the user belongs to (specific to your product)
-    let groups = vec![
-        Group::new("workspace", "My Workspace").with_group_id("workspace-123"),
-        Group::new("document", "Project Plan").with_group_id("doc-456"),
-    ];
+    println!("JWT: {}", jwt);
+}
+```
 
-    // User role (if applicable)
-    let role = Some("admin");
+### Generate a JWT with Additional Properties
 
-    // Generate the JWT
-    let jwt = client.generate_jwt(user_id, identifiers, groups, role).unwrap();
+You can include additional properties in the JWT payload:
+
+```rust
+use vortex_sdk::{VortexClient, User};
+use std::collections::HashMap;
+
+fn main() {
+    let client = VortexClient::new(std::env::var("VORTEX_API_KEY").unwrap());
+
+    let user = User::new("user-123", "user@example.com");
+
+    let mut extra = HashMap::new();
+    extra.insert("role".to_string(), serde_json::json!("admin"));
+    extra.insert("department".to_string(), serde_json::json!("Engineering"));
+
+    let jwt = client.generate_jwt(&user, Some(extra)).unwrap();
 
     println!("JWT: {}", jwt);
 }
@@ -65,19 +73,16 @@ fn main() {
 All API methods are async and require a tokio runtime:
 
 ```rust
-use vortex_sdk::{VortexClient, Identifier, Group, InvitationTarget};
+use vortex_sdk::{VortexClient, User};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = VortexClient::new(std::env::var("VORTEX_API_KEY")?);
 
     // Generate a JWT
-    let jwt = client.generate_jwt(
-        "user-123",
-        vec![Identifier::new("email", "user@example.com")],
-        vec![Group::new("team", "team-1", "Engineering")],
-        Some("admin")
-    )?;
+    let user = User::new("user-123", "user@example.com")
+        .with_admin_scopes(vec!["autoJoin".to_string()]);
+    let jwt = client.generate_jwt(&user, None)?;
 
     println!("JWT: {}", jwt);
 
@@ -106,7 +111,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use vortex_sdk::{VortexClient, Identifier, Group};
+use vortex_sdk::VortexClient;
 
 #[derive(Clone)]
 struct AppState {
@@ -119,14 +124,10 @@ struct JwtResponse {
 }
 
 async fn get_jwt(State(state): State<AppState>) -> Result<Json<JwtResponse>, StatusCode> {
+    let user = vortex_sdk::User::new("user-123", "user@example.com");
     let jwt = state
         .vortex
-        .generate_jwt(
-            "user-123",
-            vec![Identifier::new("email", "user@example.com")],
-            vec![Group::new("workspace", "ws-1", "Main Workspace")],
-            Some("member"),
-        )
+        .generate_jwt(&user, None)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(JwtResponse { jwt }))
@@ -239,6 +240,7 @@ match client.get_invitation("invalid-id").await {
 - **React Compatible**: JWTs generated using the same algorithm as Node.js SDK
 - **Comprehensive**: All Vortex API endpoints supported
 - **Error handling**: Rich error types for better debugging
+- **Flexible**: User-based JWT generation with support for admin scopes and custom properties
 
 ## License
 

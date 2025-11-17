@@ -1,6 +1,39 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// User type for JWT generation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct User {
+    pub id: String,
+    pub email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_scopes: Option<Vec<String>>,
+    #[serde(flatten)]
+    pub extra: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl User {
+    pub fn new(id: &str, email: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            email: email.to_string(),
+            admin_scopes: None,
+            extra: None,
+        }
+    }
+
+    pub fn with_admin_scopes(mut self, scopes: Vec<String>) -> Self {
+        self.admin_scopes = Some(scopes);
+        self
+    }
+
+    pub fn with_extra(mut self, extra: HashMap<String, serde_json::Value>) -> Self {
+        self.extra = Some(extra);
+        self
+    }
+}
+
 /// Identifier for a user (email, sms, etc.)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Identifier {

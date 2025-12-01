@@ -150,18 +150,9 @@ impl VortexClient {
             "expires": expires,
         });
 
-        // Add userIsAutoJoinAdmin if 'autoJoin' is in admin_scopes
+        // Add adminScopes if present
         if let Some(ref scopes) = user.admin_scopes {
-            if scopes.iter().any(|s| s == "autoJoin") {
-                payload_json["userIsAutoJoinAdmin"] = json!(true);
-            }
-        }
-
-        // Add any additional properties from user.extra
-        if let Some(ref user_extra) = user.extra {
-            for (key, value) in user_extra {
-                payload_json[key] = value.clone();
-            }
+            payload_json["adminScopes"] = json!(scopes);
         }
 
         // Add any additional properties from extra parameter

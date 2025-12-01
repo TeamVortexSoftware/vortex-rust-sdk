@@ -9,8 +9,6 @@ pub struct User {
     pub email: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub admin_scopes: Option<Vec<String>>,
-    #[serde(flatten)]
-    pub extra: Option<HashMap<String, serde_json::Value>>,
 }
 
 impl User {
@@ -19,17 +17,11 @@ impl User {
             id: id.to_string(),
             email: email.to_string(),
             admin_scopes: None,
-            extra: None,
         }
     }
 
     pub fn with_admin_scopes(mut self, scopes: Vec<String>) -> Self {
         self.admin_scopes = Some(scopes);
-        self
-    }
-
-    pub fn with_extra(mut self, extra: HashMap<String, serde_json::Value>) -> Self {
-        self.extra = Some(extra);
         self
     }
 }
@@ -157,6 +149,9 @@ pub struct Invitation {
     pub project_id: String,
     pub groups: Vec<InvitationGroup>,
     pub accepts: Vec<InvitationAcceptance>,
+    pub expired: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires: Option<String>,
 }
 
 /// Response containing multiple invitations

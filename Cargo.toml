@@ -1,6 +1,6 @@
 [package]
 name = "vortex-sdk"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Team Vortex Software <support@vortexsoftware.com>"]
 description = "Vortex Rust SDK for authentication and invitation management"

@@ -119,35 +119,51 @@ impl InvitationTarget {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InvitationAcceptance {
-    pub id: String,
-    pub account_id: String,
-    pub project_id: String,
-    pub accepted_at: String,
-    pub target: InvitationTarget,
+    pub id: Option<String>,
+    pub account_id: Option<String>,
+    pub project_id: Option<String>,
+    pub accepted_at: Option<String>,
+    pub target: Option<InvitationTarget>,
 }
 
 /// Full invitation details
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Invitation {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub account_id: String,
+    #[serde(default)]
     pub click_throughs: u32,
     pub configuration_attributes: Option<HashMap<String, serde_json::Value>>,
     pub attributes: Option<HashMap<String, serde_json::Value>>,
+    #[serde(default)]
     pub created_at: String,
+    #[serde(default)]
     pub deactivated: bool,
+    #[serde(default)]
     pub delivery_count: u32,
+    #[serde(default)]
     pub delivery_types: Vec<String>,
+    #[serde(default)]
     pub foreign_creator_id: String,
+    #[serde(default)]
     pub invitation_type: String,
     pub modified_at: Option<String>,
+    #[serde(default)]
     pub status: String,
+    #[serde(default)]
     pub target: Vec<InvitationTarget>,
+    #[serde(default)]
     pub views: u32,
+    #[serde(default)]
     pub widget_configuration_id: String,
+    #[serde(default)]
     pub project_id: String,
+    #[serde(default)]
     pub groups: Vec<InvitationGroup>,
+    #[serde(default)]
     pub accepts: Vec<InvitationAcceptance>,
     pub expired: bool,
     #[serde(skip_serializing_if = "Option::is_none")]

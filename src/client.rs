@@ -79,7 +79,7 @@ impl VortexClient {
     ///
     /// // Simple usage
     /// let user = User::new("user-123", "user@example.com")
-    ///     .with_admin_scopes(vec!["autoJoin".to_string()]);
+    ///     .with_admin_scopes(vec!["autojoin".to_string()]);
     /// let jwt = client.generate_jwt(&user, None).unwrap();
     ///
     /// // With additional properties

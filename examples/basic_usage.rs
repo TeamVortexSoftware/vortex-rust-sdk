@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Generate JWT - simple usage
     println!("=== JWT Generation Example ===");
     let user = User::new("user-123", "user@example.com")
-        .with_admin_scopes(vec!["autoJoin".to_string()]);
+        .with_admin_scopes(vec!["autojoin".to_string()]);
 
     let jwt1 = client.generate_jwt(&user, None)?;
     println!("Generated JWT: {}\n", jwt1);

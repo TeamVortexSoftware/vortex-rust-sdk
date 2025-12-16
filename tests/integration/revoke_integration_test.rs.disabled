@@ -1,0 +1,202 @@
+use reqwest::Client;
+use serde_json::json;
+use std::collections::HashMap;
+use std::env;
+use std::time::{SystemTime, UNIX_EPOCH};
+use vortex_sdk::{InvitationTarget, VortexClient};
+
+#[tokio::test]
+async fn test_revoke_invitation_flow() {
+    // Validate required environment variables
+    let api_key = env::var("TEST_INTEGRATION_SDKS_VORTEX_API_KEY")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_VORTEX_API_KEY"));
+
+    let client_api_url = env::var("TEST_INTEGRATION_SDKS_VORTEX_CLIENT_API_URL")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_VORTEX_CLIENT_API_URL"));
+
+    let public_api_url = env::var("TEST_INTEGRATION_SDKS_VORTEX_PUBLIC_API_URL")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_VORTEX_PUBLIC_API_URL"));
+
+    let session_id = env::var("TEST_INTEGRATION_SDKS_VORTEX_SESSION_ID")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_VORTEX_SESSION_ID"));
+
+    println!("\n--- Starting Rust SDK Revoke Integration Test ---");
+
+    // Setup client
+    let public_client = VortexClient::with_base_url(api_key.clone(), public_api_url.clone());
+
+    // Test data
+    let user_email = env::var("TEST_INTEGRATION_SDKS_USER_EMAIL")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_USER_EMAIL"))
+        .replace("{timestamp}", &SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs().to_string());
+
+    let component_id = env::var("TEST_INTEGRATION_SDKS_VORTEX_COMPONENT_ID")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_VORTEX_COMPONENT_ID"));
+
+    let group_type = env::var("TEST_INTEGRATION_SDKS_GROUP_TYPE")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_GROUP_TYPE"));
+
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    // TEST_INTEGRATION_SDKS_GROUP_ID is dynamic - generated from timestamp
+    let group_id = format!("test-group-{}", timestamp);
+
+    let group_name = env::var("TEST_INTEGRATION_SDKS_GROUP_NAME")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_GROUP_NAME"));
+
+    // Step 1: Create invitation
+    println!("Step 1: Creating invitation...");
+    let invitation_id =
+        create_invitation(
+            &client_api_url,
+            &api_key,
+            &session_id,
+            &user_email,
+            &component_id,
+            &group_type,
+            &group_id,
+            &group_name,
+        )
+        .await
+        .expect("Failed to create invitation");
+    println!("✓ Created invitation: {}", invitation_id);
+
+    // Step 2: Get invitation
+    println!("Step 2: Getting invitation...");
+    let invitations = public_client
+        .get_invitations_by_target("email", &user_email)
+        .await
+        .expect("Failed to get invitations");
+
+    assert!(!invitations.is_empty(), "No invitations found");
+
+    // Find our specific invitation
+    let invitation = invitations
+        .iter()
+        .find(|inv| inv.id == invitation_id)
+        .or_else(|| invitations.first())
+        .expect("No invitation found");
+
+    println!("✓ Retrieved invitation successfully");
+
+    // Step 3: Revoke invitation
+    println!("Step 3: Revoking invitation...");
+
+    public_client
+        .revoke_invitation(&invitation_id)
+        .await
+        .expect("Failed to revoke invitation");
+
+    println!("✓ Revoked invitation successfully");
+
+    println!("--- Rust SDK Revoke Integration Test Complete ---\n");
+}
+
+async fn create_invitation(
+    client_api_url: &str,
+    api_key: &str,
+    session_id: &str,
+    user_email: &str,
+    component_id: &str,
+    group_type: &str,
+    group_id: &str,
+    group_name: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    // Generate JWT for authentication
+    let vortex_client = VortexClient::with_base_url(api_key.to_string(), client_api_url.to_string());
+    let user_id = env::var("TEST_INTEGRATION_SDKS_USER_ID")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: TEST_INTEGRATION_SDKS_USER_ID"));
+    let user = vortex_sdk::User::new(&user_id, user_email);
+    let mut extra = HashMap::new();
+    extra.insert("insecure".to_string(), json!(true)); // Bypass session attestation for testing
+    let jwt = vortex_client.generate_jwt(&user, Some(extra))?;
+
+    // Step 1: Fetch widget configuration to get the widget configuration ID and sessionAttestation
+    let widget_url = format!("{}/api/v1/widgets/{}?templateVariables=lzstr:N4Ig5gTg9grgDgfQHYEMC2BTEAuEBlAEQGkACAFQwGcAXEgcWnhABoQBLJANzeowmXRZcBCCQBqUCLwAeLcI0SY0AIz4IAxrCTUcIAMxzNaOCiQBPAZl0SpGaSQCSSdQDoQAXyA", client_api_url, component_id);
+    let client = Client::new();
+    let widget_response = client
+        .get(&widget_url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", jwt))
+        .header("x-session-id", session_id)
+        .send()
+        .await?;
+
+    let widget_status = widget_response.status();
+    if !widget_status.is_success() {
+        let body = widget_response.text().await?;
+        return Err(format!("Failed to fetch widget configuration with HTTP {}: {}", widget_status, body).into());
+    }
+
+    let widget_data: serde_json::Value = widget_response.json().await?;
+    let widget_config_id = widget_data["data"]["widgetConfiguration"]["id"]
+        .as_str()
+        .ok_or("Widget configuration ID not found in response")?;
+
+    let session_attestation = widget_data["data"]["sessionAttestation"]
+        .as_str()
+        .ok_or("Session attestation not found in widget response")?;
+
+    println!("Using widget configuration ID: {}", widget_config_id);
+
+    // Step 2: Create invitation with the widget configuration ID
+    let url = format!("{}/api/v1/invitations", client_api_url);
+
+    let data = json!({
+        "payload": {
+            "emails": {
+                "value": user_email,
+                "type": "email",
+                "role": "member"
+            }
+        },
+        "group": {
+            "type": group_type,
+            "groupId": group_id,
+            "name": group_name
+        },
+        "source": "email",
+        "widgetConfigurationId": widget_config_id,
+        "templateVariables": {
+            "group_name": "SDK Test Group",
+            "inviter_name": "Dr Vortex",
+            "group_member_count": "3",
+            "company_name": "Vortex Inc."
+        }
+    });
+
+    let response = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", jwt))
+        .header("x-session-id", session_id)
+        .header("x-session-attestation", session_attestation)
+        .json(&data)
+        .send()
+        .await?;
+
+    let status = response.status();
+    let body = response.text().await?;
+
+    if !status.is_success() {
+        return Err(format!("Create invitation failed with HTTP {}: {}", status, body).into());
+    }
+
+    let result: serde_json::Value = serde_json::from_str(&body)?;
+    // The API returns the full widget configuration with invitation entries
+    // Extract the invitation ID from the nested structure
+    let id = result["data"]["invitationEntries"][0]["id"]
+        .as_str()
+        .or_else(|| result["id"].as_str())
+        .ok_or("Invitation ID not found in response")?
+        .to_string();
+
+    if result["data"]["invitationEntries"][0]["id"].as_str().is_some() {
+        println!("Successfully extracted invitation ID: {}", id);
+    }
+
+    Ok(id)
+}

@@ -19,6 +19,7 @@ tokio = { version = "1.0", features = ["full"] }
 Once you have the SDK installed, [login](https://admin.vortexsoftware.com/signin) to Vortex and [create an API Key](https://admin.vortexsoftware.com/members/api-keys). Keep your API key safe! Vortex does not store the API key and it is not retrievable once it has been created.
 
 Your API key is used to:
+
 - Sign JWTs for use with the Vortex Widget
 - Make API calls against the [Vortex API](https://api.vortexsoftware.com/api)
 
@@ -37,7 +38,7 @@ fn main() {
 
     // Create a user and generate JWT
     let user = User::new("user-123", "user@example.com")
-        .with_admin_scopes(vec!["autoJoin".to_string()]);
+        .with_admin_scopes(vec!["autojoin".to_string()]);
 
     let jwt = client.generate_jwt(&user, None).unwrap();
 
@@ -81,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate a JWT
     let user = User::new("user-123", "user@example.com")
-        .with_admin_scopes(vec!["autoJoin".to_string()]);
+        .with_admin_scopes(vec!["autojoin".to_string()]);
     let jwt = client.generate_jwt(&user, None)?;
 
     println!("JWT: {}", jwt);

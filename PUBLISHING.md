@@ -98,7 +98,7 @@ Create or update `CHANGELOG.md` with release notes:
 ### Step 4: Build and Test
 
 ```bash
-cd packages/vortex-rust-sdk
+cd sdks/vortex-rust-sdk
 
 # Check for any issues
 cargo check
@@ -215,24 +215,24 @@ jobs:
 
       - name: Run tests
         run: |
-          cd packages/vortex-rust-sdk
+          cd sdks/vortex-rust-sdk
           cargo test --all-features
 
       - name: Run Clippy
         run: |
-          cd packages/vortex-rust-sdk
+          cd sdks/vortex-rust-sdk
           cargo clippy -- -D warnings
 
       - name: Check formatting
         run: |
-          cd packages/vortex-rust-sdk
+          cd sdks/vortex-rust-sdk
           cargo fmt --check
 
       - name: Publish to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          cd packages/vortex-rust-sdk
+          cd sdks/vortex-rust-sdk
           cargo publish --token $CARGO_REGISTRY_TOKEN
 ```
 
@@ -414,7 +414,7 @@ Published crates automatically get documentation at [docs.rs](https://docs.rs). 
 ### Comprehensive Testing
 
 ```bash
-cd packages/vortex-rust-sdk
+cd sdks/vortex-rust-sdk
 
 # Run all tests
 cargo test
@@ -444,7 +444,7 @@ cargo new test-vortex
 cd test-vortex
 
 # Add local dependency
-cargo add vortex-sdk --path /path/to/packages/vortex-rust-sdk
+cargo add vortex-sdk --path /path/to/sdks/vortex-rust-sdk
 
 # Create a test
 cat > src/main.rs << 'EOF'

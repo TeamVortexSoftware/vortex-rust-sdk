@@ -218,14 +218,99 @@ impl VortexClient {
     }
 
     /// Accept multiple invitations
+    ///
+    /// # Arguments
+    ///
+    /// * `invitation_ids` - Vector of invitation IDs to accept
+    /// * `param` - User data (preferred) or legacy target format
+    ///
+    /// # New User Format (Preferred)
+    ///
+    /// ```
+    /// use vortex_sdk::{VortexClient, AcceptUser};
+    ///
+    /// # async fn example() {
+    /// let client = VortexClient::new("VRTX.key.secret".to_string());
+    /// let user = AcceptUser::new().with_email("user@example.com");
+    /// let result = client.accept_invitations(vec!["inv-123".to_string()], user).await;
+    /// # }
+    /// ```
+    ///
+    /// # Legacy Target Format (Deprecated)
+    ///
+    /// ```
+    /// use vortex_sdk::{VortexClient, InvitationTarget};
+    ///
+    /// # async fn example() {
+    /// let client = VortexClient::new("VRTX.key.secret".to_string());
+    /// let target = InvitationTarget::new("email", "user@example.com");
+    /// let result = client.accept_invitations(vec!["inv-123".to_string()], target).await;
+    /// # }
+    /// ```
     pub async fn accept_invitations(
         &self,
         invitation_ids: Vec<String>,
-        target: InvitationTarget,
+        param: impl Into<crate::types::AcceptInvitationParam>,
     ) -> Result<Invitation, VortexError> {
+        use crate::types::{AcceptInvitationParam, AcceptUser};
+
+        let param = param.into();
+
+        // Convert all parameter types to User format to avoid async recursion
+        let user = match param {
+            AcceptInvitationParam::Targets(targets) => {
+                eprintln!("[Vortex SDK] DEPRECATED: Passing a vector of targets is deprecated. Use the AcceptUser format and call once per user instead.");
+
+                if targets.is_empty() {
+                    return Err(VortexError::InvalidRequest("No targets provided".to_string()));
+                }
+
+                let mut last_result = None;
+                let mut last_error = None;
+
+                for target in targets {
+                    // Convert target to user
+                    let user = match target.target_type.as_str() {
+                        "email" => AcceptUser::new().with_email(&target.value),
+                        "sms" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
+                        _ => AcceptUser::new().with_email(&target.value),
+                    };
+
+                    match Box::pin(self.accept_invitations(invitation_ids.clone(), user)).await {
+                        Ok(result) => last_result = Some(result),
+                        Err(e) => last_error = Some(e),
+                    }
+                }
+
+                if let Some(err) = last_error {
+                    return Err(err);
+                }
+
+                return last_result.ok_or_else(|| VortexError::InvalidRequest("No results".to_string()));
+            }
+            AcceptInvitationParam::Target(target) => {
+                eprintln!("[Vortex SDK] DEPRECATED: Passing an InvitationTarget is deprecated. Use the AcceptUser format instead: AcceptUser::new().with_email(\"user@example.com\")");
+
+                // Convert target to User format
+                match target.target_type.as_str() {
+                    "email" => AcceptUser::new().with_email(&target.value),
+                    "sms" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
+                    _ => AcceptUser::new().with_email(&target.value), // Default to email
+                }
+            }
+            AcceptInvitationParam::User(user) => user,
+        };
+
+        // Validate that either email or phone is provided
+        if user.email.is_none() && user.phone.is_none() {
+            return Err(VortexError::InvalidRequest(
+                "User must have either email or phone".to_string(),
+            ));
+        }
+
         let body = json!({
             "invitationIds": invitation_ids,
-            "target": target,
+            "user": user,
         });
 
         self.api_request("POST", "/api/v1/invitations/accept", Some(&body), None)

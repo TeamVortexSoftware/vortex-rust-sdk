@@ -98,7 +98,8 @@ pub struct InvitationGroup {
     pub created_at: String,
 }
 
-/// Invitation target (email or sms)
+/// Invitation target (email or sms) - DEPRECATED
+/// Use AcceptUser instead for accepting invitations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InvitationTarget {
     #[serde(rename = "type")]
@@ -112,6 +113,60 @@ impl InvitationTarget {
             target_type: target_type.to_string(),
             value: value.to_string(),
         }
+    }
+}
+
+/// User data for accepting invitations (preferred format)
+///
+/// At least one of email or phone must be provided.
+///
+/// # Example
+///
+/// ```
+/// use vortex_sdk::AcceptUser;
+///
+/// // With email only
+/// let user = AcceptUser::new().with_email("user@example.com");
+///
+/// // With email and name
+/// let user = AcceptUser::new()
+///     .with_email("user@example.com")
+///     .with_name("John Doe");
+///
+/// // With all fields
+/// let user = AcceptUser::new()
+///     .with_email("user@example.com")
+///     .with_phone("+1234567890")
+///     .with_name("John Doe");
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AcceptUser {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl AcceptUser {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_email(mut self, email: &str) -> Self {
+        self.email = Some(email.to_string());
+        self
+    }
+
+    pub fn with_phone(mut self, phone: &str) -> Self {
+        self.phone = Some(phone.to_string());
+        self
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
+        self
     }
 }
 
@@ -174,4 +229,33 @@ pub struct Invitation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InvitationsResponse {
     pub invitations: Option<Vec<Invitation>>,
+}
+
+/// Accept invitation parameter - supports both new User format and legacy Target format
+#[derive(Debug, Clone)]
+pub enum AcceptInvitationParam {
+    /// New User format (preferred)
+    User(AcceptUser),
+    /// Legacy target format (deprecated)
+    Target(InvitationTarget),
+    /// Legacy multiple targets format (deprecated)
+    Targets(Vec<InvitationTarget>),
+}
+
+impl From<AcceptUser> for AcceptInvitationParam {
+    fn from(user: AcceptUser) -> Self {
+        AcceptInvitationParam::User(user)
+    }
+}
+
+impl From<InvitationTarget> for AcceptInvitationParam {
+    fn from(target: InvitationTarget) -> Self {
+        AcceptInvitationParam::Target(target)
+    }
+}
+
+impl From<Vec<InvitationTarget>> for AcceptInvitationParam {
+    fn from(targets: Vec<InvitationTarget>) -> Self {
+        AcceptInvitationParam::Targets(targets)
+    }
 }

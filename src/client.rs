@@ -66,7 +66,10 @@ impl VortexClient {
     ///
     /// # Arguments
     ///
-    /// * `user` - User object with id, email, and optional admin_scopes
+    /// * `user` - User object with id, email, and optional fields:
+    ///   - name: user's display name (max 200 characters)
+    ///   - avatar_url: user's avatar URL (must be HTTPS, max 2000 characters)
+    ///   - admin_scopes: list of admin scopes (e.g., vec!["autojoin"])
     /// * `extra` - Optional additional properties to include in the JWT payload
     ///
     /// # Example
@@ -79,7 +82,9 @@ impl VortexClient {
     ///
     /// // Simple usage
     /// let user = User::new("user-123", "user@example.com")
-    ///     .with_admin_scopes(vec!["autojoin".to_string()]);
+    ///     .with_name("Jane Doe")                                     // Optional: user's display name
+    ///     .with_avatar_url("https://example.com/avatars/jane.jpg")  // Optional: user's avatar URL
+    ///     .with_admin_scopes(vec!["autojoin".to_string()]);         // Optional: grants admin privileges
     /// let jwt = client.generate_jwt(&user, None).unwrap();
     ///
     /// // With additional properties
@@ -149,6 +154,16 @@ impl VortexClient {
             "userEmail": user.email,
             "expires": expires,
         });
+
+        // Add name if present
+        if let Some(ref name) = user.name {
+            payload_json["name"] = json!(name);
+        }
+
+        // Add avatarUrl if present
+        if let Some(ref avatar_url) = user.avatar_url {
+            payload_json["avatarUrl"] = json!(avatar_url);
+        }
 
         // Add adminScopes if present
         if let Some(ref scopes) = user.admin_scopes {
@@ -272,7 +287,7 @@ impl VortexClient {
                     // Convert target to user
                     let user = match target.target_type.as_str() {
                         "email" => AcceptUser::new().with_email(&target.value),
-                        "sms" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
+                        "phone" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
                         _ => AcceptUser::new().with_email(&target.value),
                     };
 
@@ -294,7 +309,7 @@ impl VortexClient {
                 // Convert target to User format
                 match target.target_type.as_str() {
                     "email" => AcceptUser::new().with_email(&target.value),
-                    "sms" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
+                    "phone" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
                     _ => AcceptUser::new().with_email(&target.value), // Default to email
                 }
             }
@@ -360,6 +375,61 @@ impl VortexClient {
             None,
         )
         .await
+    }
+
+    /// Create an invitation from your backend
+    ///
+    /// This method allows you to create invitations programmatically using your API key,
+    /// without requiring a user JWT token. Useful for server-side invitation creation,
+    /// such as "People You May Know" flows or admin-initiated invitations.
+    ///
+    /// # Target types
+    ///
+    /// - `email`: Send an email invitation
+    /// - `sms`: Create an SMS invitation (short link returned for you to send)
+    /// - `internal`: Create an internal invitation for PYMK flows (no email sent)
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use vortex_sdk::{VortexClient, CreateInvitationRequest, CreateInvitationTarget, Inviter, CreateInvitationGroup};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = VortexClient::new("VRTX.xxx.yyy".to_string());
+    ///
+    ///     // Create an email invitation
+    ///     let request = CreateInvitationRequest::new(
+    ///         "widget-config-123",
+    ///         CreateInvitationTarget::email("invitee@example.com"),
+    ///         Inviter::new("user-456")
+    ///             .with_email("inviter@example.com")
+    ///             .with_name("John Doe"),
+    ///     )
+    ///     .with_groups(vec![
+    ///         CreateInvitationGroup::new("team", "team-789", "Engineering"),
+    ///     ]);
+    ///
+    ///     let result = client.create_invitation(&request).await?;
+    ///
+    ///     // Create an internal invitation (PYMK flow - no email sent)
+    ///     let request = CreateInvitationRequest::new(
+    ///         "widget-config-123",
+    ///         CreateInvitationTarget::internal("internal-user-abc"),
+    ///         Inviter::new("user-456"),
+    ///     )
+    ///     .with_source("pymk");
+    ///
+    ///     let result = client.create_invitation(&request).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn create_invitation(
+        &self,
+        request: &CreateInvitationRequest,
+    ) -> Result<CreateInvitationResponse, VortexError> {
+        self.api_request("POST", "/api/v1/invitations", Some(request), None)
+            .await
     }
 
     async fn api_request<T, B>(

@@ -2,11 +2,16 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// User type for JWT generation
+/// Optional fields: name (max 200 chars), avatar_url (HTTPS URL, max 2000 chars), admin_scopes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: String,
     pub email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub admin_scopes: Option<Vec<String>>,
 }
@@ -16,8 +21,20 @@ impl User {
         Self {
             id: id.to_string(),
             email: email.to_string(),
+            name: None,
+            avatar_url: None,
             admin_scopes: None,
         }
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
+        self
+    }
+
+    pub fn with_avatar_url(mut self, avatar_url: &str) -> Self {
+        self.avatar_url = Some(avatar_url.to_string());
+        self
     }
 
     pub fn with_admin_scopes(mut self, scopes: Vec<String>) -> Self {
@@ -199,6 +216,7 @@ pub struct Invitation {
     pub deactivated: bool,
     #[serde(default)]
     pub delivery_count: u32,
+    /// Valid values: "email", "phone", "share", "internal"
     #[serde(default)]
     pub delivery_types: Vec<String>,
     #[serde(default)]
@@ -223,6 +241,12 @@ pub struct Invitation {
     pub expired: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_avatar_url: Option<String>,
 }
 
 /// Response containing multiple invitations
@@ -258,4 +282,174 @@ impl From<Vec<InvitationTarget>> for AcceptInvitationParam {
     fn from(targets: Vec<InvitationTarget>) -> Self {
         AcceptInvitationParam::Targets(targets)
     }
+}
+
+// --- Types for creating invitations via backend API ---
+
+/// Target for creating an invitation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateInvitationTarget {
+    /// Target type: "email", "phone", or "internal"
+    #[serde(rename = "type")]
+    pub target_type: String,
+    /// Target value: email address, phone number, or internal user ID
+    pub value: String,
+}
+
+impl CreateInvitationTarget {
+    pub fn email(value: &str) -> Self {
+        Self {
+            target_type: "email".to_string(),
+            value: value.to_string(),
+        }
+    }
+
+    pub fn sms(value: &str) -> Self {
+        Self {
+            target_type: "phone".to_string(),
+            value: value.to_string(),
+        }
+    }
+
+    pub fn internal(value: &str) -> Self {
+        Self {
+            target_type: "internal".to_string(),
+            value: value.to_string(),
+        }
+    }
+}
+
+/// Information about the user creating the invitation (the inviter)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Inviter {
+    /// Required: Your internal user ID for the inviter
+    pub user_id: String,
+    /// Optional: Email of the inviter
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_email: Option<String>,
+    /// Optional: Display name of the inviter
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Optional: Avatar URL of the inviter
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
+}
+
+impl Inviter {
+    pub fn new(user_id: &str) -> Self {
+        Self {
+            user_id: user_id.to_string(),
+            user_email: None,
+            name: None,
+            avatar_url: None,
+        }
+    }
+
+    pub fn with_email(mut self, email: &str) -> Self {
+        self.user_email = Some(email.to_string());
+        self
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
+        self
+    }
+
+    pub fn with_avatar_url(mut self, url: &str) -> Self {
+        self.avatar_url = Some(url.to_string());
+        self
+    }
+}
+
+/// Group information for creating invitations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateInvitationGroup {
+    /// Group type (e.g., "team", "organization")
+    #[serde(rename = "type")]
+    pub group_type: String,
+    /// Your internal group ID
+    pub group_id: String,
+    /// Display name of the group
+    pub name: String,
+}
+
+impl CreateInvitationGroup {
+    pub fn new(group_type: &str, group_id: &str, name: &str) -> Self {
+        Self {
+            group_type: group_type.to_string(),
+            group_id: group_id.to_string(),
+            name: name.to_string(),
+        }
+    }
+}
+
+/// Request body for creating an invitation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateInvitationRequest {
+    pub widget_configuration_id: String,
+    pub target: CreateInvitationTarget,
+    pub inviter: Inviter,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub groups: Option<Vec<CreateInvitationGroup>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub template_variables: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl CreateInvitationRequest {
+    pub fn new(
+        widget_configuration_id: &str,
+        target: CreateInvitationTarget,
+        inviter: Inviter,
+    ) -> Self {
+        Self {
+            widget_configuration_id: widget_configuration_id.to_string(),
+            target,
+            inviter,
+            groups: None,
+            source: None,
+            template_variables: None,
+            metadata: None,
+        }
+    }
+
+    pub fn with_groups(mut self, groups: Vec<CreateInvitationGroup>) -> Self {
+        self.groups = Some(groups);
+        self
+    }
+
+    pub fn with_source(mut self, source: &str) -> Self {
+        self.source = Some(source.to_string());
+        self
+    }
+
+    pub fn with_template_variables(mut self, vars: HashMap<String, String>) -> Self {
+        self.template_variables = Some(vars);
+        self
+    }
+
+    pub fn with_metadata(mut self, metadata: HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+}
+
+/// Response from creating an invitation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateInvitationResponse {
+    /// The ID of the created invitation
+    pub id: String,
+    /// The short link for the invitation
+    pub short_link: String,
+    /// The status of the invitation
+    pub status: String,
+    /// When the invitation was created
+    pub created_at: String,
 }

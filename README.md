@@ -52,33 +52,15 @@ fn main() {
     let client = VortexClient::new(std::env::var("VORTEX_API_KEY").unwrap());
 
     // Create a user and generate JWT
-    let user = User::new("user-123", "user@example.com")
-        .with_admin_scopes(vec!["autojoin".to_string()]);
+    let user = User::builder()
+        .id("user-123")
+        .email("user@example.com")
+        .user_name("Jane Doe")                                          // Optional: user's display name
+        .user_avatar_url("https://example.com/avatars/jane.jpg")        // Optional: user's avatar URL
+        .admin_scopes(vec!["autojoin".to_string()])                // Optional: grants autojoin admin privileges
+        .build();
 
     let jwt = client.generate_jwt(&user, None).unwrap();
-
-    println!("JWT: {}", jwt);
-}
-```
-
-### Generate a JWT with Additional Properties
-
-You can include additional properties in the JWT payload:
-
-```rust
-use vortex_sdk::{VortexClient, User};
-use std::collections::HashMap;
-
-fn main() {
-    let client = VortexClient::new(std::env::var("VORTEX_API_KEY").unwrap());
-
-    let user = User::new("user-123", "user@example.com");
-
-    let mut extra = HashMap::new();
-    extra.insert("role".to_string(), serde_json::json!("admin"));
-    extra.insert("department".to_string(), serde_json::json!("Engineering"));
-
-    let jwt = client.generate_jwt(&user, Some(extra)).unwrap();
 
     println!("JWT: {}", jwt);
 }

@@ -82,8 +82,8 @@ impl VortexClient {
     ///
     /// // Simple usage
     /// let user = User::new("user-123", "user@example.com")
-    ///     .with_name("Jane Doe")                                     // Optional: user's display name
-    ///     .with_avatar_url("https://example.com/avatars/jane.jpg")  // Optional: user's avatar URL
+    ///     .with_user_name("Jane Doe")                                     // Optional: user's display name
+    ///     .with_user_avatar_url("https://example.com/avatars/jane.jpg")  // Optional: user's avatar URL
     ///     .with_admin_scopes(vec!["autojoin".to_string()]);         // Optional: grants admin privileges
     /// let jwt = client.generate_jwt(&user, None).unwrap();
     ///
@@ -156,13 +156,13 @@ impl VortexClient {
         });
 
         // Add name if present
-        if let Some(ref name) = user.name {
-            payload_json["name"] = json!(name);
+        if let Some(ref user_name) = user.user_name {
+            payload_json["userName"] = json!(user_name);
         }
 
-        // Add avatarUrl if present
-        if let Some(ref avatar_url) = user.avatar_url {
-            payload_json["avatarUrl"] = json!(avatar_url);
+        // Add userAvatarUrl if present
+        if let Some(ref user_avatar_url) = user.user_avatar_url {
+            payload_json["userAvatarUrl"] = json!(user_avatar_url);
         }
 
         // Add adminScopes if present
@@ -404,7 +404,7 @@ impl VortexClient {
     ///         CreateInvitationTarget::email("invitee@example.com"),
     ///         Inviter::new("user-456")
     ///             .with_email("inviter@example.com")
-    ///             .with_name("John Doe"),
+    ///             .with_user_name("John Doe"),
     ///     )
     ///     .with_groups(vec![
     ///         CreateInvitationGroup::new("team", "team-789", "Engineering"),

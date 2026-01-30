@@ -2,16 +2,16 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// User type for JWT generation
-/// Optional fields: name (max 200 chars), avatar_url (HTTPS URL, max 2000 chars), admin_scopes
+/// Optional fields: user_name (max 200 chars), user_avatar_url (HTTPS URL, max 2000 chars), admin_scopes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: String,
     pub email: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    pub user_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub avatar_url: Option<String>,
+    pub user_avatar_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub admin_scopes: Option<Vec<String>>,
 }
@@ -21,19 +21,19 @@ impl User {
         Self {
             id: id.to_string(),
             email: email.to_string(),
-            name: None,
-            avatar_url: None,
+            user_name: None,
+            user_avatar_url: None,
             admin_scopes: None,
         }
     }
 
-    pub fn with_name(mut self, name: &str) -> Self {
-        self.name = Some(name.to_string());
+    pub fn with_user_name(mut self, name: &str) -> Self {
+        self.user_name = Some(name.to_string());
         self
     }
 
-    pub fn with_avatar_url(mut self, avatar_url: &str) -> Self {
-        self.avatar_url = Some(avatar_url.to_string());
+    pub fn with_user_avatar_url(mut self, avatar_url: &str) -> Self {
+        self.user_avatar_url = Some(avatar_url.to_string());
         self
     }
 
@@ -330,10 +330,10 @@ pub struct Inviter {
     pub user_email: Option<String>,
     /// Optional: Display name of the inviter
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    pub user_name: Option<String>,
     /// Optional: Avatar URL of the inviter
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub avatar_url: Option<String>,
+    pub user_avatar_url: Option<String>,
 }
 
 impl Inviter {
@@ -341,8 +341,8 @@ impl Inviter {
         Self {
             user_id: user_id.to_string(),
             user_email: None,
-            name: None,
-            avatar_url: None,
+            user_name: None,
+            user_avatar_url: None,
         }
     }
 
@@ -351,13 +351,13 @@ impl Inviter {
         self
     }
 
-    pub fn with_name(mut self, name: &str) -> Self {
-        self.name = Some(name.to_string());
+    pub fn with_user_name(mut self, name: &str) -> Self {
+        self.user_name = Some(name.to_string());
         self
     }
 
-    pub fn with_avatar_url(mut self, url: &str) -> Self {
-        self.avatar_url = Some(url.to_string());
+    pub fn with_user_avatar_url(mut self, url: &str) -> Self {
+        self.user_avatar_url = Some(url.to_string());
         self
     }
 }

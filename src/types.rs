@@ -1,6 +1,66 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// ============================================================================
+// Enums for type-safe API values
+// ============================================================================
+
+/// Target type for invitation responses (who was invited)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InvitationTargetType {
+    Email,
+    Phone,
+    Share,
+    Internal,
+}
+
+/// Target type for creating invitations
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CreateInvitationTargetType {
+    Email,
+    Phone,
+    Internal,
+}
+
+/// Type of invitation
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InvitationType {
+    SingleUse,
+    MultiUse,
+    Autojoin,
+}
+
+/// Current status of an invitation
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InvitationStatus {
+    Queued,
+    Sending,
+    Sent,
+    Delivered,
+    Accepted,
+    Shared,
+    Unfurled,
+    AcceptedElsewhere,
+}
+
+/// Delivery type for invitations
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeliveryType {
+    Email,
+    Phone,
+    Share,
+    Internal,
+}
+
+// ============================================================================
+// Core types
+// ============================================================================
+
 /// User type for JWT generation
 /// Optional fields: user_name (max 200 chars), user_avatar_url (HTTPS URL, max 2000 chars), admin_scopes
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,21 +175,28 @@ pub struct InvitationGroup {
     pub created_at: String,
 }
 
-/// Invitation target (email or sms) - DEPRECATED
-/// Use AcceptUser instead for accepting invitations
+/// Invitation target from API responses
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InvitationTarget {
     #[serde(rename = "type")]
-    pub target_type: String,
+    pub target_type: InvitationTargetType,
     pub value: String,
 }
 
 impl InvitationTarget {
-    pub fn new(target_type: &str, value: &str) -> Self {
+    pub fn new(target_type: InvitationTargetType, value: &str) -> Self {
         Self {
-            target_type: target_type.to_string(),
+            target_type,
             value: value.to_string(),
         }
+    }
+
+    pub fn email(value: &str) -> Self {
+        Self::new(InvitationTargetType::Email, value)
+    }
+
+    pub fn phone(value: &str) -> Self {
+        Self::new(InvitationTargetType::Phone, value)
     }
 }
 
@@ -216,16 +283,13 @@ pub struct Invitation {
     pub deactivated: bool,
     #[serde(default)]
     pub delivery_count: u32,
-    /// Valid values: "email", "phone", "share", "internal"
     #[serde(default)]
-    pub delivery_types: Vec<String>,
+    pub delivery_types: Vec<DeliveryType>,
     #[serde(default)]
     pub foreign_creator_id: String,
-    #[serde(default)]
-    pub invitation_type: String,
+    pub invitation_type: InvitationType,
     pub modified_at: Option<String>,
-    #[serde(default)]
-    pub status: String,
+    pub status: InvitationStatus,
     #[serde(default)]
     pub target: Vec<InvitationTarget>,
     #[serde(default)]
@@ -289,33 +353,35 @@ impl From<Vec<InvitationTarget>> for AcceptInvitationParam {
 /// Target for creating an invitation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateInvitationTarget {
-    /// Target type: "email", "phone", or "internal"
     #[serde(rename = "type")]
-    pub target_type: String,
+    pub target_type: CreateInvitationTargetType,
     /// Target value: email address, phone number, or internal user ID
     pub value: String,
 }
 
 impl CreateInvitationTarget {
-    pub fn email(value: &str) -> Self {
+    pub fn new(target_type: CreateInvitationTargetType, value: &str) -> Self {
         Self {
-            target_type: "email".to_string(),
+            target_type,
             value: value.to_string(),
         }
     }
 
+    pub fn email(value: &str) -> Self {
+        Self::new(CreateInvitationTargetType::Email, value)
+    }
+
+    pub fn phone(value: &str) -> Self {
+        Self::new(CreateInvitationTargetType::Phone, value)
+    }
+
+    /// Alias for phone (backward compatibility)
     pub fn sms(value: &str) -> Self {
-        Self {
-            target_type: "phone".to_string(),
-            value: value.to_string(),
-        }
+        Self::phone(value)
     }
 
     pub fn internal(value: &str) -> Self {
-        Self {
-            target_type: "internal".to_string(),
-            value: value.to_string(),
-        }
+        Self::new(CreateInvitationTargetType::Internal, value)
     }
 }
 
@@ -385,6 +451,72 @@ impl CreateInvitationGroup {
     }
 }
 
+/// Valid Open Graph types for unfurl configuration
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UnfurlOgType {
+    Website,
+    Article,
+    Video,
+    Music,
+    Book,
+    Profile,
+    Product,
+}
+
+/// Configuration for link unfurl (Open Graph) metadata
+/// Controls how the invitation link appears when shared on social platforms or messaging apps
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct UnfurlConfig {
+    /// The title shown in link previews (og:title)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The description shown in link previews (og:description)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// The image URL shown in link previews (og:image) - must be HTTPS
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<String>,
+    /// The Open Graph type (og:type)
+    #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
+    pub og_type: Option<UnfurlOgType>,
+    /// The site name shown in link previews (og:site_name)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub site_name: Option<String>,
+}
+
+impl UnfurlConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_title(mut self, title: &str) -> Self {
+        self.title = Some(title.to_string());
+        self
+    }
+
+    pub fn with_description(mut self, description: &str) -> Self {
+        self.description = Some(description.to_string());
+        self
+    }
+
+    pub fn with_image(mut self, image: &str) -> Self {
+        self.image = Some(image.to_string());
+        self
+    }
+
+    pub fn with_type(mut self, og_type: UnfurlOgType) -> Self {
+        self.og_type = Some(og_type);
+        self
+    }
+
+    pub fn with_site_name(mut self, site_name: &str) -> Self {
+        self.site_name = Some(site_name.to_string());
+        self
+    }
+}
+
 /// Request body for creating an invitation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -400,6 +532,8 @@ pub struct CreateInvitationRequest {
     pub template_variables: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<HashMap<String, serde_json::Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unfurl_config: Option<UnfurlConfig>,
 }
 
 impl CreateInvitationRequest {
@@ -416,6 +550,7 @@ impl CreateInvitationRequest {
             source: None,
             template_variables: None,
             metadata: None,
+            unfurl_config: None,
         }
     }
 
@@ -436,6 +571,11 @@ impl CreateInvitationRequest {
 
     pub fn with_metadata(mut self, metadata: HashMap<String, serde_json::Value>) -> Self {
         self.metadata = Some(metadata);
+        self
+    }
+
+    pub fn with_unfurl_config(mut self, unfurl_config: UnfurlConfig) -> Self {
+        self.unfurl_config = Some(unfurl_config);
         self
     }
 }

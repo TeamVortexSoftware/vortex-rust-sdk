@@ -1,4 +1,4 @@
-use vortex_sdk::{AcceptUser, InvitationTarget, VortexClient};
+use vortex_sdk::{AcceptUser, InvitationTarget, InvitationTargetType, VortexClient};
 
 #[tokio::test]
 async fn test_accept_user_with_email_only() {
@@ -41,7 +41,7 @@ async fn test_accept_invitations_with_user_fails_with_fake_key() {
 #[tokio::test]
 async fn test_accept_invitations_with_legacy_target_fails_with_fake_key() {
     let client = VortexClient::new("VRTX.dGVzdC1rZXk.test-secret".to_string());
-    let target = InvitationTarget::new("email", "legacy@example.com");
+    let target = InvitationTarget::email("legacy@example.com");
 
     let result = client.accept_invitations(vec!["test-inv".to_string()], target).await;
     assert!(result.is_err(), "Should fail with fake API key");
@@ -51,8 +51,8 @@ async fn test_accept_invitations_with_legacy_target_fails_with_fake_key() {
 async fn test_accept_invitations_with_legacy_targets_array_fails_with_fake_key() {
     let client = VortexClient::new("VRTX.dGVzdC1rZXk.test-secret".to_string());
     let targets = vec![
-        InvitationTarget::new("email", "user1@example.com"),
-        InvitationTarget::new("email", "user2@example.com"),
+        InvitationTarget::email("user1@example.com"),
+        InvitationTarget::email("user2@example.com"),
     ];
 
     let result = client.accept_invitations(vec!["test-inv".to_string()], targets).await;

@@ -258,7 +258,7 @@ impl VortexClient {
     ///
     /// # async fn example() {
     /// let client = VortexClient::new("VRTX.key.secret".to_string());
-    /// let target = InvitationTarget::new("email", "user@example.com");
+    /// let target = InvitationTarget::email("user@example.com");
     /// let result = client.accept_invitations(vec!["inv-123".to_string()], target).await;
     /// # }
     /// ```
@@ -285,9 +285,9 @@ impl VortexClient {
 
                 for target in targets {
                     // Convert target to user
-                    let user = match target.target_type.as_str() {
-                        "email" => AcceptUser::new().with_email(&target.value),
-                        "phone" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
+                    let user = match target.target_type {
+                        InvitationTargetType::Email => AcceptUser::new().with_email(&target.value),
+                        InvitationTargetType::Phone => AcceptUser::new().with_phone(&target.value),
                         _ => AcceptUser::new().with_email(&target.value),
                     };
 
@@ -307,9 +307,9 @@ impl VortexClient {
                 eprintln!("[Vortex SDK] DEPRECATED: Passing an InvitationTarget is deprecated. Use the AcceptUser format instead: AcceptUser::new().with_email(\"user@example.com\")");
 
                 // Convert target to User format
-                match target.target_type.as_str() {
-                    "email" => AcceptUser::new().with_email(&target.value),
-                    "phone" | "phoneNumber" => AcceptUser::new().with_phone(&target.value),
+                match target.target_type {
+                    InvitationTargetType::Email => AcceptUser::new().with_email(&target.value),
+                    InvitationTargetType::Phone => AcceptUser::new().with_phone(&target.value),
                     _ => AcceptUser::new().with_email(&target.value), // Default to email
                 }
             }

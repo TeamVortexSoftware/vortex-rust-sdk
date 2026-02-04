@@ -181,6 +181,13 @@ pub struct InvitationTarget {
     #[serde(rename = "type")]
     pub target_type: InvitationTargetType,
     pub value: String,
+    /// Display name of the person being invited
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Avatar URL for the person being invited (for display in invitation lists)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "avatarUrl")]
+    pub avatar_url: Option<String>,
 }
 
 impl InvitationTarget {
@@ -188,6 +195,8 @@ impl InvitationTarget {
         Self {
             target_type,
             value: value.to_string(),
+            name: None,
+            avatar_url: None,
         }
     }
 
@@ -197,6 +206,16 @@ impl InvitationTarget {
 
     pub fn phone(value: &str) -> Self {
         Self::new(InvitationTargetType::Phone, value)
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
+        self
+    }
+
+    pub fn with_avatar_url(mut self, avatar_url: &str) -> Self {
+        self.avatar_url = Some(avatar_url.to_string());
+        self
     }
 }
 
@@ -307,6 +326,9 @@ pub struct Invitation {
     pub expires: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    /// Customer-defined subtype for analytics segmentation (e.g., "pymk", "find-friends")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtype: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub creator_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -357,6 +379,13 @@ pub struct CreateInvitationTarget {
     pub target_type: CreateInvitationTargetType,
     /// Target value: email address, phone number, or internal user ID
     pub value: String,
+    /// Display name of the person being invited
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Avatar URL for the person being invited (for display in invitation lists)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "avatarUrl")]
+    pub avatar_url: Option<String>,
 }
 
 impl CreateInvitationTarget {
@@ -364,6 +393,8 @@ impl CreateInvitationTarget {
         Self {
             target_type,
             value: value.to_string(),
+            name: None,
+            avatar_url: None,
         }
     }
 
@@ -382,6 +413,16 @@ impl CreateInvitationTarget {
 
     pub fn internal(value: &str) -> Self {
         Self::new(CreateInvitationTargetType::Internal, value)
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
+        self
+    }
+
+    pub fn with_avatar_url(mut self, avatar_url: &str) -> Self {
+        self.avatar_url = Some(avatar_url.to_string());
+        self
     }
 }
 
@@ -528,6 +569,9 @@ pub struct CreateInvitationRequest {
     pub groups: Option<Vec<CreateInvitationGroup>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    /// Customer-defined subtype for analytics segmentation (e.g., "pymk", "find-friends")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtype: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub template_variables: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -548,6 +592,7 @@ impl CreateInvitationRequest {
             inviter,
             groups: None,
             source: None,
+            subtype: None,
             template_variables: None,
             metadata: None,
             unfurl_config: None,
@@ -561,6 +606,11 @@ impl CreateInvitationRequest {
 
     pub fn with_source(mut self, source: &str) -> Self {
         self.source = Some(source.to_string());
+        self
+    }
+
+    pub fn with_subtype(mut self, subtype: &str) -> Self {
+        self.subtype = Some(subtype.to_string());
         self
     }
 

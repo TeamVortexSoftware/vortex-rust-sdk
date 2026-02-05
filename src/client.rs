@@ -432,6 +432,91 @@ impl VortexClient {
             .await
     }
 
+    /// Get autojoin domains configured for a specific scope
+    ///
+    /// # Arguments
+    ///
+    /// * `scope_type` - The type of scope (e.g., "organization", "team", "project")
+    /// * `scope` - The scope identifier (customer's group ID)
+    ///
+    /// # Returns
+    ///
+    /// AutojoinDomainsResponse with autojoin domains and associated invitation
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use vortex_sdk::VortexClient;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = VortexClient::new("VRTX.your_key_here".to_string());
+    ///
+    ///     let result = client.get_autojoin_domains("organization", "acme-org").await?;
+    ///     for domain in &result.autojoin_domains {
+    ///         println!("Domain: {}", domain.domain);
+    ///     }
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn get_autojoin_domains(
+        &self,
+        scope_type: &str,
+        scope: &str,
+    ) -> Result<AutojoinDomainsResponse, VortexError> {
+        let encoded_scope_type = urlencoding::encode(scope_type);
+        let encoded_scope = urlencoding::encode(scope);
+        let path = format!(
+            "/api/v1/invitations/by-scope/{}/{}/autojoin",
+            encoded_scope_type, encoded_scope
+        );
+        self.api_request::<AutojoinDomainsResponse, ()>("GET", &path, None, None)
+            .await
+    }
+
+    /// Configure autojoin domains for a specific scope
+    ///
+    /// This endpoint syncs autojoin domains - it will add new domains, remove domains
+    /// not in the provided list, and deactivate the autojoin invitation if all domains
+    /// are removed (empty array).
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The configure autojoin request
+    ///
+    /// # Returns
+    ///
+    /// AutojoinDomainsResponse with updated autojoin domains and associated invitation
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use vortex_sdk::{VortexClient, ConfigureAutojoinRequest};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = VortexClient::new("VRTX.your_key_here".to_string());
+    ///
+    ///     let request = ConfigureAutojoinRequest::new(
+    ///         "acme-org",
+    ///         "organization",
+    ///         vec!["acme.com".to_string(), "acme.org".to_string()],
+    ///         "widget-123",
+    ///     )
+    ///     .with_scope_name("Acme Corporation");
+    ///
+    ///     let result = client.configure_autojoin(&request).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn configure_autojoin(
+        &self,
+        request: &ConfigureAutojoinRequest,
+    ) -> Result<AutojoinDomainsResponse, VortexError> {
+        self.api_request("POST", "/api/v1/invitations/autojoin", Some(request), None)
+            .await
+    }
+
     async fn api_request<T, B>(
         &self,
         method: &str,

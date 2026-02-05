@@ -643,3 +643,57 @@ pub struct CreateInvitationResponse {
     /// When the invitation was created
     pub created_at: String,
 }
+
+// --- Types for autojoin domain management ---
+
+/// Represents an autojoin domain configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutojoinDomain {
+    pub id: String,
+    pub domain: String,
+}
+
+/// Response from autojoin API endpoints
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutojoinDomainsResponse {
+    pub autojoin_domains: Vec<AutojoinDomain>,
+    pub invitation: Option<Invitation>,
+}
+
+/// Request body for configuring autojoin domains
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigureAutojoinRequest {
+    pub scope: String,
+    pub scope_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_name: Option<String>,
+    pub domains: Vec<String>,
+    pub widget_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl ConfigureAutojoinRequest {
+    pub fn new(scope: &str, scope_type: &str, domains: Vec<String>, widget_id: &str) -> Self {
+        Self {
+            scope: scope.to_string(),
+            scope_type: scope_type.to_string(),
+            scope_name: None,
+            domains,
+            widget_id: widget_id.to_string(),
+            metadata: None,
+        }
+    }
+
+    pub fn with_scope_name(mut self, scope_name: &str) -> Self {
+        self.scope_name = Some(scope_name.to_string());
+        self
+    }
+
+    pub fn with_metadata(mut self, metadata: HashMap<String, serde_json::Value>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+}

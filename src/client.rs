@@ -170,6 +170,13 @@ impl VortexClient {
             payload_json["adminScopes"] = json!(scopes);
         }
 
+        // Add allowedEmailDomains if present (for domain-restricted invitations)
+        if let Some(ref domains) = user.allowed_email_domains {
+            if !domains.is_empty() {
+                payload_json["allowedEmailDomains"] = json!(domains);
+            }
+        }
+
         // Add any additional properties from extra parameter
         if let Some(extra_props) = extra {
             for (key, value) in extra_props {
@@ -330,6 +337,38 @@ impl VortexClient {
 
         self.api_request("POST", "/api/v1/invitations/accept", Some(&body), None)
             .await
+    }
+
+    /// Accept a single invitation (recommended method)
+    ///
+    /// This is the recommended method for accepting invitations.
+    ///
+    /// # Arguments
+    ///
+    /// * `invitation_id` - Single invitation ID to accept
+    /// * `user` - User object with email and/or phone
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Invitation, VortexError>` - The accepted invitation result
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use vortex_sdk::{VortexClient, AcceptUser};
+    ///
+    /// # async fn example() {
+    /// let client = VortexClient::new("VRTX.key.secret".to_string());
+    /// let user = AcceptUser::new().with_email("user@example.com");
+    /// let result = client.accept_invitation("inv-123", user).await;
+    /// # }
+    /// ```
+    pub async fn accept_invitation(
+        &self,
+        invitation_id: &str,
+        user: crate::types::AcceptUser,
+    ) -> Result<Invitation, VortexError> {
+        self.accept_invitations(vec![invitation_id.to_string()], user).await
     }
 
     /// Delete all invitations for a specific group

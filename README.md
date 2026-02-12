@@ -175,17 +175,14 @@ let invitation = client.get_invitation("invitation-id").await?;
 client.revoke_invitation("invitation-id").await?;
 ```
 
-#### Accept Invitations
+#### Accept an Invitation
 
 ```rust
-use vortex_sdk::InvitationTarget;
+use vortex_sdk::AcceptUser;
 
-let target = InvitationTarget::new("email", "user@example.com");
+let user = AcceptUser::new().with_email("user@example.com");
 let result = client
-    .accept_invitations(
-        vec!["invitation-id-1".to_string(), "invitation-id-2".to_string()],
-        target,
-    )
+    .accept_invitation("invitation-id", user)
     .await?;
 ```
 

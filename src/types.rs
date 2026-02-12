@@ -62,7 +62,7 @@ pub enum DeliveryType {
 // ============================================================================
 
 /// User type for JWT generation
-/// Optional fields: user_name (max 200 chars), user_avatar_url (HTTPS URL, max 2000 chars), admin_scopes
+/// Optional fields: user_name (max 200 chars), user_avatar_url (HTTPS URL, max 2000 chars), admin_scopes, allowed_email_domains
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -74,6 +74,9 @@ pub struct User {
     pub user_avatar_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub admin_scopes: Option<Vec<String>>,
+    /// Optional list of allowed email domains for invitation restrictions (e.g., ["acme.com", "acme.org"])
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_email_domains: Option<Vec<String>>,
 }
 
 impl User {
@@ -84,6 +87,7 @@ impl User {
             user_name: None,
             user_avatar_url: None,
             admin_scopes: None,
+            allowed_email_domains: None,
         }
     }
 
@@ -99,6 +103,11 @@ impl User {
 
     pub fn with_admin_scopes(mut self, scopes: Vec<String>) -> Self {
         self.admin_scopes = Some(scopes);
+        self
+    }
+
+    pub fn with_allowed_email_domains(mut self, domains: Vec<String>) -> Self {
+        self.allowed_email_domains = Some(domains);
         self
     }
 }

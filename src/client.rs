@@ -581,7 +581,9 @@ impl VortexClient {
         request = request
             .header("Content-Type", "application/json")
             .header("x-api-key", &self.api_key)
-            .header("User-Agent", "vortex-rust-sdk/1.0.0");
+            .header("User-Agent", format!("vortex-rust-sdk/{}", env!("CARGO_PKG_VERSION")))
+            .header("x-vortex-sdk-name", "vortex-rust-sdk")
+            .header("x-vortex-sdk-version", env!("CARGO_PKG_VERSION"));
 
         // Add query parameters
         if let Some(params) = query_params {

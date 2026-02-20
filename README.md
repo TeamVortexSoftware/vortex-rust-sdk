@@ -210,10 +210,37 @@ let result = client.reinvite("invitation-id").await?;
 
 #### Sync Internal Invitation
 
+If you're using `internal` delivery type invitations and managing the invitation flow within your own application, you can sync invitation decisions back to Vortex when users accept or decline invitations in your system.
+
 ```rust
-let request = SyncInternalInvitationRequest::new("user-123", "user-456", "accepted", "component-uuid");
+// Sync an internal invitation action (accept or decline)
+let request = SyncInternalInvitationRequest::new(
+    "user-123",           // creator_id - The inviter's user ID in your system
+    "user-456",           // target_value - The invitee's user ID in your system
+    "accepted",           // action - "accepted" or "declined"
+    "component-uuid"      // component_id - The widget component UUID
+);
+
 let result = client.sync_internal_invitation(&request).await?;
+
+println!("Processed: {}", result.processed);
+println!("Invitation IDs: {:?}", result.invitation_ids);
 ```
+
+**Parameters:**
+- `creator_id` (String) — The inviter's user ID in your system
+- `target_value` (String) — The invitee's user ID in your system
+- `action` ("accepted" | "declined") — The invitation decision
+- `component_id` (String) — The widget component UUID
+
+**Response:**
+- `processed` (usize) — Count of invitations processed
+- `invitation_ids` (Vec<String>) — IDs of processed invitations
+
+**Use cases:**
+- You handle invitation delivery through your own in-app notifications or UI
+- Users accept/decline invitations within your application
+- You need to keep Vortex updated with the invitation status
 ```
 
 ## Error Handling

@@ -1,6 +1,6 @@
 [package]
 name = "vortex-sdk"
-version = "1.9.1"
+version = "1.9.2"
 edition = "2021"
 authors = ["Team Vortex Software <support@vortexsoftware.com>"]
 description = "Vortex Rust SDK for authentication and invitation management"
@@ -22,6 +22,7 @@ sha2 = "0.10"
 tokio = { version = "1.0", features = ["full"] }
 urlencoding = "2.1"
 uuid = { version = "1.0", features = ["v4"] }
+getrandom = ">=0.2, <0.4"  # Pin to avoid edition2024 requirement (CI uses Rust 1.83)
 
 [dev-dependencies]
 tokio-test = "0.4"

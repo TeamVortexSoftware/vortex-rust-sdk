@@ -208,6 +208,14 @@ client
 let result = client.reinvite("invitation-id").await?;
 ```
 
+#### Sync Internal Invitation
+
+```rust
+let request = SyncInternalInvitationRequest::new("user-123", "user-456", "accepted", "component-uuid");
+let result = client.sync_internal_invitation(&request).await?;
+```
+```
+
 ## Error Handling
 
 The SDK uses a custom `VortexError` type for error handling:

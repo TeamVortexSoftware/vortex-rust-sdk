@@ -548,6 +548,41 @@ impl VortexClient {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// Sync an internal invitation action (accept or decline)
+    ///
+    /// This method notifies Vortex that an internal invitation was accepted or declined
+    /// within your application, so Vortex can update the invitation status accordingly.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use vortex_sdk::{VortexClient, SyncInternalInvitationRequest};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = VortexClient::new("VRTX.xxx.yyy".to_string());
+    ///     let request = SyncInternalInvitationRequest::new(
+    ///         "user-123", "user-456", "accepted", "component-uuid",
+    ///     );
+    ///     let result = client.sync_internal_invitation(&request).await?;
+    ///     println!("Processed {} invitations", result.processed);
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn sync_internal_invitation(
+        &self,
+        request: &SyncInternalInvitationRequest,
+    ) -> Result<SyncInternalInvitationResponse, VortexError> {
+        self.api_request(
+            "POST",
+            "/api/v1/invitation-actions/sync-internal-invitation",
+            Some(request),
+            None,
+        )
+        .await
+    }
+
     pub async fn configure_autojoin(
         &self,
         request: &ConfigureAutojoinRequest,

@@ -653,6 +653,43 @@ pub struct CreateInvitationResponse {
     pub created_at: String,
 }
 
+// --- Types for syncing internal invitation actions ---
+
+/// Request body for syncing an internal invitation action
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncInternalInvitationRequest {
+    /// The inviter's user ID
+    pub creator_id: String,
+    /// The invitee's user ID
+    pub target_value: String,
+    /// The action taken: "accepted" or "declined"
+    pub action: String,
+    /// The widget component UUID
+    pub component_id: String,
+}
+
+impl SyncInternalInvitationRequest {
+    pub fn new(creator_id: &str, target_value: &str, action: &str, component_id: &str) -> Self {
+        Self {
+            creator_id: creator_id.to_string(),
+            target_value: target_value.to_string(),
+            action: action.to_string(),
+            component_id: component_id.to_string(),
+        }
+    }
+}
+
+/// Response from syncing an internal invitation action
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncInternalInvitationResponse {
+    /// Number of invitations processed
+    pub processed: u32,
+    /// IDs of the invitations that were processed
+    pub invitation_ids: Vec<String>,
+}
+
 // --- Types for autojoin domain management ---
 
 /// Represents an autojoin domain configuration

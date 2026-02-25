@@ -38,7 +38,11 @@
 mod client;
 mod error;
 mod types;
+pub mod webhook_types;
+mod webhooks;
 
 pub use client::VortexClient;
 pub use error::VortexError;
 pub use types::*;
+pub use webhook_types::*;
+pub use webhooks::VortexWebhooks;

@@ -15,6 +15,8 @@ pub enum VortexError {
     SerializationError(String),
     /// Invalid request
     InvalidRequest(String),
+    /// Webhook signature verification failed
+    WebhookSignatureError(String),
 }
 
 impl fmt::Display for VortexError {
@@ -26,6 +28,7 @@ impl fmt::Display for VortexError {
             VortexError::ApiError(msg) => write!(f, "API error: {}", msg),
             VortexError::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
             VortexError::InvalidRequest(msg) => write!(f, "Invalid request: {}", msg),
+            VortexError::WebhookSignatureError(msg) => write!(f, "Webhook signature error: {}", msg),
         }
     }
 }

@@ -576,7 +576,7 @@ impl VortexClient {
     ) -> Result<SyncInternalInvitationResponse, VortexError> {
         self.api_request(
             "POST",
-            "/api/v1/invitation-actions/sync-internal-invitation",
+            "/api/v1/invitations/sync-internal-invitation",
             Some(request),
             None,
         )
